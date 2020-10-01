@@ -45,13 +45,32 @@ au FocusGained,BufEnter * checktime
 " like <leader>w saves the current file
 let mapleader = ","
 
-" Fast saving
-nmap <leader>w :w!<cr>
+"Fast saving
+nmap <silent> <leader>ww :w<cr>
+nmap <silent> <leader>wf :w!<cr>
+
+"Fast quiting
+nmap <silent> <leader>qw :wq<cr>
+nmap <silent> <leader>qf :call BufCloseForce()<cr>
+nmap <silent> <leader>qq :call BufClose()<cr>
+nmap <silent> <leader>qa :qa<cr>
 
 " :W sudo saves the file 
 " (useful for handling the permission-denied error)
 command! W execute 'w !sudo tee % > /dev/null' <bar> edit!
 
+" CTRL-C
+vnoremap <C-C> "+y
+
+" CTRL-X
+vnoremap <C-X> "+d
+
+" CTRL-V
+map <C-V> "+p
+
+" Use vv to do what CTRL-V used to do
+" Others are used to use CTRL-Q, but CTRL-Q has other meaning in terminal
+noremap vv <C-Q>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => VIM user interface
@@ -156,6 +175,7 @@ endif
 
 " Set utf8 as standard encoding and en_US as the standard language
 set encoding=utf8
+set fileencodings=utf8,gbk
 
 " Use Unix as the standard file type
 set ffs=unix,dos,mac
@@ -380,4 +400,42 @@ function! VisualSelection(direction, extra_filter) range
 
     let @/ = l:pattern
     let @" = l:saved_reg
+endfunction
+
+" Auxiliary buffer check
+function! IsAuxiliary(buffer)
+    return !getbufvar(a:buffer, '&modifiable') || !getbufvar(a:buffer, '&buflisted') || (getbufvar(a:buffer, '&buftype') != '')
+endfunction
+
+" Count buffer numbers
+function! NrBufs()
+    let i = bufnr('$')
+    let j = 0
+    while i >= 1
+        if buflisted(i)
+            let j+=1
+        endif
+        let i-=1
+    endwhile
+    return j
+endfunction
+
+" Close window when there is only one buffer
+function! BufClose()
+    let buffer_count = NrBufs()
+    let current_buffer = bufnr('%')
+        if buffer_count == 1 || IsAuxiliary(current_buffer)
+        execute("quit")
+    else
+        execute("bdelete")
+    endif
+endfunction
+
+function! BufCloseForce()
+    let buffer_count = NrBufs()
+    if buffer_count == 1
+        execute("quit!")
+    else
+        execute("bdelete!")
+    endif
 endfunction
